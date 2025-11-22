@@ -5,7 +5,7 @@
 const std = @import("std");
 
 /// Enumeration of all possible action types in the script processor
-const Action = enum { add, skip, threshold, unknown };
+const Action = enum { add, skip, threshold, reset, unknown };
 
 /// Represents a single processing step with an associated action and value
 const Step = struct {
@@ -26,6 +26,7 @@ fn mapCode(code: u8) Action {
         'A' => .add,
         'S' => .skip,
         'T' => .threshold,
+        'R' => .reset,
         else => .unknown,
     };
 }
@@ -51,6 +52,10 @@ fn process(script: []const Step, limit: i32) Outcome {
                 // Threshold not met: continue to next step
                 continue :outer;
             },
+            .reset => {
+                total = 0;
+                continue :outer;
+            },
             // Safety assertion: unknown actions should never appear in validated scripts
             .unknown => unreachable,
         }
@@ -61,20 +66,41 @@ fn process(script: []const Step, limit: i32) Outcome {
 
 pub fn main() !void {
     // Define a script sequence demonstrating all action types
-    const script = [_]Step{
-        .{ .tag = mapCode('A'), .value = 2 },  // Add 2 → total: 2
-        .{ .tag = mapCode('S'), .value = 0 },  // Skip (no effect)
-        .{ .tag = mapCode('A'), .value = 5 },  // Add 5 → total: 7
-        .{ .tag = mapCode('T'), .value = 6 },  // Threshold check (7 >= 6: triggers early exit)
-        .{ .tag = mapCode('A'), .value = 10 }, // Never executed due to early termination
-    };
+    // const script = [_]Step{
+    //     .{ .tag = mapCode('A'), .value = 2 },  // Add 2 → total: 2
+    //     .{ .tag = mapCode('S'), .value = 0 },  // Skip (no effect)
+    //     .{ .tag = mapCode('A'), .value = 5 },  // Add 5 → total: 7
+    //     .{ .tag = mapCode('T'), .value = 6 },  // Threshold check (7 >= 6: triggers early exit)
+    //     .{ .tag = mapCode('A'), .value = 10 }, // Never executed due to early termination
+    // };
 
-    // Execute the script with a threshold limit of 6
-    const outcome = process(&script, 6);
+    // // Execute the script with a threshold limit of 6
+    // const outcome = process(&script, 6);
     
-    // Report where execution stopped and the final accumulated value
+    // // Report where execution stopped and the final accumulated value
+    // std.debug.print(
+    //     "stopped at step {d} with total {d}\n",
+    //     .{ outcome.index, outcome.total },
+    // );
+    
+    const input = "A2 S0 A5 R0 T6";
+    var steps: [10]Step = undefined;
+    var count: usize = 0;
+    
+    var it = std.mem.tokenizeScalar(u8 , input, ' ');
+    while (it.next()) |tok| : ( count += 1) {
+        const tag_char = tok[0];
+        const val_char = tok[1];
+        
+        steps[count] = Step{ 
+            .tag = mapCode(tag_char), 
+            .value = @as(i32, val_char - '0') };
+    }
+    
+    const outcome = process(steps[0..count], 6);
+    
     std.debug.print(
         "stopped at step {d} with total {d}\n",
-        .{ outcome.index, outcome.total },
+        .{ outcome.index, outcome.total }
     );
 }
