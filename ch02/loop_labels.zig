@@ -3,6 +3,11 @@
 // Demonstrates labeled loops and while-else constructs in Zig
 const std = @import("std");
 
+const Coord = struct {
+    row: usize,
+    col: usize,
+};
+
 /// Searches for the first row where both elements are even numbers.
 /// Uses a while loop with continue statements to skip invalid rows.
 /// Returns the zero-based index of the matching row, or null if none found.
@@ -42,7 +47,7 @@ pub fn main() !void {
     // Demonstrate labeled loop for multi-level break control
     var attempts: usize = 0;
     // Label the outer while loop to enable breaking from nested for loop
-    outer: while (attempts < grid.len) : (attempts += 1) {
+    const result: Coord = outer: while (attempts < grid.len) : (attempts += 1) {
         // Iterate through columns of current row with index capture
         for (grid[attempts], 0..) |value, column| {
             // Check if target value is found
@@ -53,8 +58,10 @@ pub fn main() !void {
                     .{ attempts, column },
                 );
                 // Break out of both loops using the outer label
-                break :outer;
+                break :outer Coord{ .row = attempts, .col = column };
             }
         }
-    }
+    } else Coord{ .row = 0, .col = 0 };
+    
+    std.debug.print("coordinates row: {d}, col: {d}\n", .{ result.row, result.col });
 }
