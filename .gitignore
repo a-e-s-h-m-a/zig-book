@@ -1,0 +1,23 @@
+# Zig build output
+zig-cache/
+zig-out/
+
+# Compiled object files and binaries (executables)
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Executables at project root (unix-like)
+/[a-zA-Z0-9_-]*
+
+# VS Code settings
+.vscode/
+
+# MacOS
+.DS_Store
+
+# User/OS-specific files
+Thumbs.db
