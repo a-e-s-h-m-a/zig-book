@@ -14,6 +14,7 @@ fn chooseLabel(value: ?i32) []const u8 {
         // Positive numbers
         if (v > 0) break :blk "positive";
         // All remaining cases are negative
+        if (v > 100) break :blk "more than 100!";
         break :blk "negative";
     } else "missing"; // Handle null case
 }
@@ -29,4 +30,6 @@ pub fn main() !void {
         // Display the index and corresponding label
         std.debug.print("sample {d}: {s}\n", .{ index, label });
     }
+    // returns "result is positive" confirming only single branch will get executed
+    std.debug.print("result is {s}\n", .{chooseLabel(123)});
 }
