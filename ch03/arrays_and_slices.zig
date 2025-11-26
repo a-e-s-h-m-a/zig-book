@@ -48,4 +48,31 @@ pub fn main() !void {
     // Create a slice from an empty array literal using address-of operator
     const zero: []const i32 = &[_]i32{};
     std.debug.print("zero slice len={} from literal\n", .{zero.len});
+    
+    var runtime_array: [5]u8 = .{ 10, 20, 30, 40, 50 };
+    const view: []u8 = runtime_array[0..0];
+    std.debug.print("Initial slice: len={}, ptr={*}\n", .{ view.len, view.ptr });
+    
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+    
+    var list: std.ArrayList(u8) = .{};
+    defer list.deinit(allocator);
+    try list.append(allocator, 100);
+    try list.append(allocator, 200);
+    try list.append(allocator, 250);
+    
+    std.debug.print("ArrayList items after append: {any}\n", .{ list.items });
+    
+    //5) Show that slice 'view' remains unchanged and still points to original array
+    std.debug.print(
+        "Slice after ArrayList changes: len={}, ptr={*}\n",
+        .{ view.len, view.ptr }
+    );
+    
+    // 6) Modify the underlying array
+    runtime_array[0] = 99;
+    std.debug.print("After arr[0] = 99 → arr = {any}\n", .{ runtime_array });
+    std.debug.print("Slice view still points arr: len={}, ptr={*}\n", .{ view.len, view.ptr });
 }
