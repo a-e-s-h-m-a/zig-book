@@ -1,5 +1,20 @@
 const std = @import("std");
 
+pub const Error = error{
+    MissingSentinel,
+};
+
+fn ensureSentinel(input: []const u8) Error![:0]const u8 {
+    if (input.len == 0) {
+        return Error.MissingSentinel;
+    }
+    if (input[input.len - 1] != 0) {
+        return Error.MissingSentinel;
+    }
+    // Properly create sentinel slice
+    return input[0 .. input.len - 1 :0];
+}
+
 /// Demonstrates sentinel-terminated strings and arrays in Zig, including:
 /// - Zero-terminated string literals ([:0]const u8)
 /// - Many-item sentinel pointers ([*:0]const u8)
@@ -47,4 +62,47 @@ pub fn main() !void {
     // Demonstrate that mutations through the pointer affected the original array
     // std.mem.span uses the sentinel to reconstruct the full slice
     std.debug.print("full label after mutation: {s}\n", .{std.mem.span(tail)});
+    
+    std.debug.print("\n\n----------------------------------\n\n", .{});
+    
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    // SCENARIO 1: Using allocSentinel (sentinel is OUTSIDE the slice)
+    std.debug.print("=== Scenario 1: allocSentinel ===\n", .{});
+    const user_raw = "Hello world";
+    const buf1 = try allocator.allocSentinel(u8, user_raw.len, 0);
+    defer allocator.free(buf1);
+    @memcpy(buf1, user_raw);
+    
+    std.debug.print("buf1.len={}\n", .{buf1.len});
+    std.debug.print("Last char: '{c}' (is it 0? {})\n", .{buf1[buf1.len - 1], buf1[buf1.len - 1] == 0});
+    
+    _ = ensureSentinel(buf1) catch |err| {
+        std.debug.print("Error: {any}\n", .{err});
+        std.debug.print("This is expected - sentinel is outside slice bounds\n\n", .{});
+    };
+
+    // SCENARIO 2: Manual allocation with null terminator INSIDE the slice
+    std.debug.print("=== Scenario 2: Manual with null inside ===\n", .{});
+    const buf2 = try allocator.alloc(u8, user_raw.len + 1);
+    defer allocator.free(buf2);
+    @memcpy(buf2[0..user_raw.len], user_raw);
+    buf2[user_raw.len] = 0; // Put null terminator inside the slice
+    
+    std.debug.print("buf2.len={}\n", .{buf2.len});
+    std.debug.print("Last char: is 0? {}\n\n", .{buf2[buf2.len - 1] == 0});
+    
+    _ = ensureSentinel(buf2) catch |err| {
+        std.debug.print("Error: {any}\n\n", .{err});
+        return;
+    };
+
+    // SCENARIO 3: String literals (already sentinel-terminated)
+    std.debug.print("=== Scenario 3: String literal ===\n", .{});
+    const literal2: [:0]const u8 = "Hello world";
+    std.debug.print("This is already sentinel-terminated!\n", .{});
+    std.debug.print("Type: [:0]const u8\n", .{});
+    std.debug.print("literal: {any}\n", .{literal2});
 }
