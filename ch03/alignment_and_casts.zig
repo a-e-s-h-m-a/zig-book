@@ -2,7 +2,7 @@ const std = @import("std");
 
 /// Demonstrates memory alignment concepts and various type casting operations in Zig
 /// This example covers:
-/// - Memory alignment gurantee with align() attribute
+/// - Memory alignment guarantee with align() attribute
 /// - Pointer casting with alignments using @alignCast
 /// - Type punning with @ptrCast for reinterpreting memory
 /// - Bitwise reinterpretation with @bitCast
@@ -28,7 +28,7 @@ pub fn main() !void {
     const number = word_ptr.*;
     std.debug.print("32-bit value = 0x{X:0>8}\n", .{number});
     
-    // Alternative approach: directly reinterpret the first 4 bytes using @bitCase
+    // Alternative approach: directly reinterpret the first 4 bytes using @bitCast
     // This creates a copy and does't require pointer manipulation
     const from_bytes = @as(u32, @bitCast(raw[0..4].*));
     std.debug.print("bitcast copy = 0x{X:0>8}\n", .{from_bytes});
@@ -41,8 +41,25 @@ pub fn main() !void {
     std.debug.print("truncate -> 0x{X:0>2}, widen -> {d}\n", .{ small, widened });
     
     // Demonstrate @floatCast: reduce f64 precision to f32
-    // May result in precision loss for values that cannot be exactlu represented in f32
+    // May result in precision loss for values that cannot be exactly represented in f32
     const ratio64: f64 = 1.875;
     const ratio32: f32 = @as(f32, @floatCast(ratio64));
     std.debug.print("floatCast ratio -> {}\n", .{ratio32});
+    
+    // New: exercise 03
+    std.debug.print("\n--- Testing with zero low byte ---\n", .{});
+    var raw2 align(@alignOf(u64)) = [_]u8{ 0x00, 0x33, 0x22, 0x11, 0, 0, 0, 0 };
+    const base2: *align(@alignOf(u64)) u8 = &raw2[0];
+    const aligned_bytes2: *align(@alignOf(u32)) const u8 = @alignCast(base2);
+    const word_ptr2: *const u32 = @ptrCast(aligned_bytes2);
+    const number2 = word_ptr2.*;
+    std.debug.print("32-bit value = 0x{X:0>8}\n", .{number2});
+    
+    const low_byte2 = number2 & 0xFF;
+    if (low_byte2 == 0) {
+        std.debug.print("Validation failed: low byte is zero, skipping truncation\n", .{});
+    } else {
+        const small2: u8 = @truncate(number2);
+        std.debug.print("truncate -> 0x{X:0>2}\n", .{small2});
+    }
 }
